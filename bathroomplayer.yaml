@@ -558,7 +558,12 @@ lvgl:
               - label:
                   id: lbl_nosleep
                   text_font: media_icons_60
-                  text_color: !lambda return id(avoid_sleep) ? lv_color_hex(0x009ac7) : lv_color_hex(0xF0F0F0);
+                  text_color: !lambda |-
+                    if (id(avoid_sleep)) {
+                      return lv_color_hex(0x009ac7);
+                    } else {
+                      return lv_color_hex(0xF0F0F0);
+                    }
                   y: 40
                   x: 130
                   text: "\U000F04B3"
@@ -577,7 +582,12 @@ lvgl:
                       - delay: 500ms
                       - lvgl.label.update:
                           id: lbl_volm
-                          text_color: !lambda return id(avoid_sleep) ? lv_color_hex(0x009ac7) : lv_color_hex(0xF0F0F0);
+                          text_color: !lambda |-
+                            if (id(avoid_sleep)) {
+                              return lv_color_hex(0x009ac7);
+                            } else {
+                              return lv_color_hex(0xF0F0F0);
+                            }
                       - script.execute: lvgl_restart_idle
               - label:
                   id: lbl_volm
@@ -1053,7 +1063,7 @@ online_image:
 
 image:
   - id: boot_screen_image
-    file: "https://github.com/zubrick/bathroomplayer/blob/db4727f6f514d38eeb02e374865af241903b6736/bathroomplayer.jpg"
+    file: "https://raw.githubusercontent.com/zubrick/bathroomplayer/db4727f6f514d38eeb02e374865af241903b6736/bathroomplayer.jpg"
     type: rgb565
 
 script:
