@@ -1038,7 +1038,7 @@ http_request:
 
 online_image:
   - id: bgimg
-    url: "${hahost}/local/playerdefault.jpg"
+    url: "https://raw.githubusercontent.com/zubrick/bathroomplayer/db4727f6f514d38eeb02e374865af241903b6736/bathroomplayer.jpg"
     format: JPEG
     type: rgb565
     resize: 320x320
