@@ -1,9 +1,3 @@
-substitutions:
-  devicename: bathroomplayer
-  upper_devicename: Bathroom Player
-  mediaplayer: media_player.sdb
-  hahost: "http://YourHAipAddressOrHostname:8123"
-
 esphome:
   name: ${devicename}
   friendly_name: ${upper_devicename}
@@ -31,23 +25,9 @@ psram:
 logger:
   level: DEBUG
 
-wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
-
-  ap:
-    ssid: ${upper_devicename} Fallback
-    password: !secret wifi_password
-
 captive_portal:
 
-ota:
-  platform: esphome
-  password: !secret ota_password
-
 api:
-  encryption:
-    key: !secret api_key
   on_client_connected:
     - if:
         condition:
@@ -186,6 +166,7 @@ font:
       "\U000F008E", # mdi-battery-outline
       "\U000F0091", # mdi-battery-unknown
       "\U000F0084", # mdi-battery-charging
+      "\U000F04B3", # nosleep
       ]
   - file: "font/materialdesignicons-webfont.ttf"
     id: media_icons_60
@@ -284,16 +265,17 @@ lvgl:
                   x: -2
                 text_color: 0x808080
                 text_font: roboto_small
-      
+
       - label:
           text: "\U000F04B3"
           id: lbl_nosleepicon
           hidden: true
-          align: top_right
-          x: 30
+          align: top_left
+          x: 70
           y: 4
-          text_align: right
+          text_align: left
           text_color: 0x808080
+          text_font: battery_icons_20
       - label:
           text: "" # start with mdi-battery-unknown
           id: lbl_mpname
@@ -394,7 +376,7 @@ lvgl:
                   y: 140
                   x: 40
                   text: "\U000F04AE"
-                  on_press: 
+                  on_press:
                     then:
                       - if:
                           condition:
@@ -420,7 +402,7 @@ lvgl:
                   y: 140
                   x: 130
                   text: "\U000F040A"
-                  on_press: 
+                  on_press:
                     then:
                       - if:
                           condition:
@@ -431,7 +413,7 @@ lvgl:
                                 text_color: !lambda return lv_color_hex(0x303030);
                             - homeassistant.action:
                                 action: media_player.media_play_pause
-                                data: 
+                                data:
                                   entity_id: ${mediaplayer}
                             - logger.log: "PlayPause"
                             - delay: 500ms
@@ -446,7 +428,7 @@ lvgl:
                   y: 140
                   x: 220
                   text: "\U000F04AD"
-                  on_press: 
+                  on_press:
                     then:
                       - if:
                           condition:
@@ -481,7 +463,7 @@ lvgl:
       width: 320
       height: 240
       scrollbar_mode: "OFF"
-      bg_color: 0x333333   
+      bg_color: 0x333333
       widgets:
         - obj:
             id: mediaplayerctrl
@@ -512,7 +494,7 @@ lvgl:
                   y: 40
                   x: 40
                   text: "\U000F0457"
-                  on_press: 
+                  on_press:
                     then:
                       - lvgl.label.update:
                           id: lbl_repeat
@@ -525,9 +507,9 @@ lvgl:
                               if (std::string(id(mprepeat).state) == "all") {
                                   return "one";
                               } else if (std::string(id(mprepeat).state) == "one") {
-                                  return "off"; // repeatone 
+                                  return "off"; // repeatone
                               } else {
-                                  return "all"; // norepeat 
+                                  return "all"; // norepeat
                               }
                       - logger.log: "repeat"
                       - script.execute: lvgl_restart_idle
@@ -538,14 +520,14 @@ lvgl:
                   y: 40
                   x: 130
                   text: "\U000F049E"
-                  on_press: 
+                  on_press:
                     then:
                       - lvgl.label.update:
                           id: lbl_shuffle
                           text_color: !lambda return lv_color_hex(0x303030);
                       - homeassistant.action:
                           action: media_player.shuffle_set
-                          data: 
+                          data:
                             entity_id: ${mediaplayer}
                             shuffle: !lambda |-
                               if (id(mpshuffle).state) {
@@ -565,9 +547,9 @@ lvgl:
                       return lv_color_hex(0xF0F0F0);
                     }
                   y: 40
-                  x: 130
+                  x: 220
                   text: "\U000F04B3"
-                  on_press: 
+                  on_press:
                     then:
                       - lvgl.label.update:
                           id: lbl_nosleep
@@ -578,10 +560,17 @@ lvgl:
                           } else {
                             id(avoid_sleep) = true;
                           }
+                      - if:
+                          condition:
+                            - lambda: return id(avoid_sleep);
+                          then:
+                            - lvgl.widget.show: lbl_nosleepicon
+                          else:
+                            - lvgl.widget.hide: lbl_nosleepicon
                       - logger.log: "nosleep"
                       - delay: 500ms
                       - lvgl.label.update:
-                          id: lbl_volm
+                          id: lbl_nosleep
                           text_color: !lambda |-
                             if (id(avoid_sleep)) {
                               return lv_color_hex(0x009ac7);
@@ -596,7 +585,7 @@ lvgl:
                   y: 120
                   x: 40
                   text: "\U000F075E"
-                  on_press: 
+                  on_press:
                     then:
                       - lvgl.label.update:
                           id: lbl_volm
@@ -618,25 +607,25 @@ lvgl:
                   y: 120
                   x: 130
                   text: "\U000F0581"
-                  on_press: 
+                  on_press:
                     then:
                       - lvgl.label.update:
                           id: lbl_mute
                           text_color: !lambda return lv_color_hex(0x303030);
                       - if:
-                          condition: 
+                          condition:
                             - lambda: 'return id(mpmute).state;'
                           then:
                             - homeassistant.action:
                                 action: media_player.volume_mute
-                                data: 
+                                data:
                                   entity_id: ${mediaplayer}
                                   is_volume_muted: 'false'
                             - logger.log: "unmute"
                           else:
                             - homeassistant.action:
                                 action: media_player.volume_mute
-                                data: 
+                                data:
                                   entity_id: ${mediaplayer}
                                   is_volume_muted: 'true'
                             - logger.log: "mute"
@@ -648,7 +637,7 @@ lvgl:
                   y: 120
                   x: 220
                   text: "\U000F075D"
-                  on_press: 
+                  on_press:
                     then:
                       - lvgl.label.update:
                           id: lbl_volp
@@ -677,7 +666,7 @@ lvgl:
                         args: [ 'x' ]
                     - homeassistant.action:
                         action: media_player.volume_set
-                        data: 
+                        data:
                           entity_id: ${mediaplayer}
                           volume_level: !lambda return x / 100.00;
                     - script.execute: lvgl_restart_idle
@@ -697,19 +686,19 @@ text_sensor:
     id: mpimage
     entity_id: ${mediaplayer}
     attribute: entity_picture
-    on_value: 
+    on_value:
       then:
         - script.execute: lvgl_restart_idle
         - online_image.set_url:
             id: bgimg
             url: !lambda |
               return std::string("${hahost}") + x;
-        
+
   - platform: homeassistant
     id: mpartist
     entity_id: ${mediaplayer}
     attribute: media_artist
-    on_value: 
+    on_value:
       then:
         - script.execute: lvgl_restart_idle
         - lvgl.label.update:
@@ -719,7 +708,7 @@ text_sensor:
     id: mptitle
     entity_id: ${mediaplayer}
     attribute: media_title
-    on_value: 
+    on_value:
       then:
         - script.execute: lvgl_restart_idle
         - lvgl.label.update:
@@ -729,7 +718,7 @@ text_sensor:
     id: mpalbum
     entity_id: ${mediaplayer}
     attribute: media_album_name
-    on_value: 
+    on_value:
       then:
         - script.execute: lvgl_restart_idle
         - lvgl.label.update:
@@ -738,7 +727,7 @@ text_sensor:
   - platform: homeassistant
     id: mpstate
     entity_id: ${mediaplayer}
-    on_value: 
+    on_value:
       then:
         - logger.log:
             format: "mpstate is %s"
@@ -760,7 +749,7 @@ text_sensor:
     id: mprepeat
     entity_id: ${mediaplayer}
     attribute: repeat
-    on_value: 
+    on_value:
       then:
         - logger.log:
             format: "mprepeate is %s"
@@ -771,11 +760,11 @@ text_sensor:
               static char buf[10];
               std::string icon;
               if (std::string(x) == "all") {
-                  icon = "\U000F0456"; // repeatall 
+                  icon = "\U000F0456"; // repeatall
               } else if (std::string(x) == "one") {
-                  icon = "\U000F0458"; // repeatone 
+                  icon = "\U000F0458"; // repeatone
               } else {
-                  icon = "\U000F0457"; // norepeat 
+                  icon = "\U000F0457"; // norepeat
               }
               snprintf(buf, sizeof(buf), "%s", icon.c_str());
               return buf;
@@ -791,7 +780,7 @@ text_sensor:
     id: mpname
     entity_id: ${mediaplayer}
     attribute: friendly_name
-    on_value: 
+    on_value:
       then:
         - lvgl.label.update:
             id: lbl_mpname
@@ -885,7 +874,7 @@ binary_sensor:
     y_min: 240
     y_max: 280
     use_raw: true
-  
+
   ## RIGHT TOUCH - NEXT PAGE
   - platform: touchscreen
     name: Right Touch Button
@@ -909,10 +898,10 @@ binary_sensor:
     id: mpmute
     entity_id: ${mediaplayer}
     attribute: is_volume_muted
-    on_state: 
+    on_state:
       then:
         - if:
-            condition: 
+            condition:
               - lambda: 'return x;'
             then:
               - lvgl.label.update:
@@ -927,10 +916,10 @@ binary_sensor:
     id: mpshuffle
     entity_id: ${mediaplayer}
     attribute: shuffle
-    on_state: 
+    on_state:
       then:
         - if:
-            condition: 
+            condition:
               - lambda: 'return x;'
             then:
               - lvgl.label.update:
@@ -1016,7 +1005,7 @@ sensor:
     id: mpvol
     entity_id: ${mediaplayer}
     attribute: volume_level
-    on_value: 
+    on_value:
       then:
         - lvgl.slider.update:
             id: lbl_volslider
@@ -1038,12 +1027,12 @@ sensor:
     attribute: media_duration
   - platform: template
     id: mpposrel
-    on_value: 
+    on_value:
       then:
         - lvgl.bar.update:
             id: lbl_pos
             value: !lambda return x;
-        
+
 
 http_request:
 
@@ -1054,10 +1043,10 @@ online_image:
     type: rgb565
     resize: 320x320
     on_download_finished:
-      - lvgl.image.update: 
+      - lvgl.image.update:
           id: wmpimg
           src: bgimg
-      - lvgl.image.update: 
+      - lvgl.image.update:
           id: wmpimg2
           src: bgimg
 
@@ -1074,7 +1063,7 @@ script:
       - logger.log: "Running Wake Up Screen Script..."
       # ENABLE WIFI
       - if:
-          condition: 
+          condition:
             not:
               wifi.enabled
           then:
@@ -1096,7 +1085,7 @@ script:
             - lvgl.resume:
             - lvgl.widget.redraw:
       - if:
-          condition: 
+          condition:
             not:
               wifi.enabled
           then:
