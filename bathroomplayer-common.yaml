@@ -37,6 +37,8 @@ font:
     id: roboto_large
     size: 28
     bpp: 4
+    glyphsets:
+      - GF_Latin_Core
   - file:
       type: gfonts
       family: Roboto
@@ -44,6 +46,8 @@ font:
     id: roboto_med
     size: 18
     bpp: 4
+    glyphsets:
+      - GF_Latin_Core
   - file:
       type: gfonts
       family: Roboto
@@ -51,6 +55,8 @@ font:
     id: roboto
     size: 16
     bpp: 4
+    glyphsets:
+      - GF_Latin_Core
   - file:
       type: gfonts
       family: Roboto
@@ -105,14 +111,18 @@ lvgl:
       then:
         - lvgl.page.show:
             id: overview_page
+            animation: MOVE_right
+            time: 200ms
         - if:
             condition:
               and:
-              - lambda: 'return id(connected_to_hass);'
+                - lambda: 'return id(connected_to_hass);'
             then:
               - if:
                   condition:
-                    - lambda: 'return std::string(id(mpstate).state) == "playing";'
+                    or:
+                      - lambda: 'return std::string(id(mpstate).state) == "playing";'
+                      - lambda: 'return id(avoid_sleep);'
                   then:
                     - script.execute: lvgl_restart_idle
                   else:
@@ -130,7 +140,9 @@ lvgl:
             then:
               - if:
                   condition:
-                    - lambda: 'return std::string(id(mpstate).state) == "playing";'
+                    or:
+                      - lambda: 'return std::string(id(mpstate).state) == "playing";'
+                      - lambda: 'return id(avoid_sleep);'
                   then:
                     - script.execute: lvgl_restart_idle
                   else:
@@ -643,7 +655,15 @@ text_sensor:
         - script.execute: lvgl_restart_idle
         - lvgl.label.update:
             id: lbl_artist
-            text: !lambda return x;
+            text: !lambda |-
+              static char buf[41];
+              std::string text = std::string(x);
+              if (text.length() > 40) {
+                text.resize(37);
+                text = text + "...";
+              }
+              snprintf(buf, sizeof(buf), "%s", text.c_str());
+              return buf;
   - platform: homeassistant
     id: mptitle
     entity_id: ${mediaplayer}
@@ -653,7 +673,15 @@ text_sensor:
         - script.execute: lvgl_restart_idle
         - lvgl.label.update:
             id: lbl_title
-            text: !lambda return x;
+            text: !lambda |-
+              static char buf[44];
+              std::string text = std::string(x);
+              if (text.length() > 43) {
+                text.resize(40);
+                text = text + "...";
+              }
+              snprintf(buf, sizeof(buf), "%s", text.c_str());
+              return buf;
   - platform: homeassistant
     id: mpalbum
     entity_id: ${mediaplayer}
@@ -663,7 +691,15 @@ text_sensor:
         - script.execute: lvgl_restart_idle
         - lvgl.label.update:
             id: lbl_album
-            text: !lambda return x;
+            text: !lambda |-
+              static char buf[44];
+              std::string text = std::string(x);
+              if (text.length() > 43) {
+                text.resize(40);
+                text = text + "...";
+              }
+              snprintf(buf, sizeof(buf), "%s", text.c_str());
+              return buf;
   - platform: homeassistant
     id: mpstate
     entity_id: ${mediaplayer}
