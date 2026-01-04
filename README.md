@@ -14,6 +14,9 @@ work similiarly with the core2
 I used the M5Stack Core S3 SE coupled with a battery backpack and the
 charger base.
 
+I also made a version compatible with the Espressif ESP32-S3-Box3 for
+a desktop use.
+
 ## Configuration
 
 Configuration for ESPHome is done with a yaml code that would resemble this:
@@ -48,3 +51,6 @@ packages:
     files: [ bathroomplayer-common.yaml, bathroomplayer-cores3-base.yaml ]
     refresh: 10s  # optional
 ```
+
+replace `bathroomplayer-cores3-base.yaml` with
+`bathroomplayer-box3-base.yaml` to use the Espressif ESP32-S3-Box3 instead
