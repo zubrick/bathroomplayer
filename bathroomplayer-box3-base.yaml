@@ -1,0 +1,76 @@
+esp32:
+  board: esp32s3box
+  flash_size: 16MB
+  cpu_frequency: 240MHz
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+
+esphome:
+  on_boot:
+    priority: 600
+    then:
+      - lvgl.widget.hide: battery_status
+      - lvgl.widget.hide: battery_status_label
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+i2c:
+  - id: bus_internal
+    scl: GPIO18
+    sda: GPIO8
+
+spi:
+  - id: spi_bus
+    clk_pin: 7
+    mosi_pin: 6
+
+output:
+  - platform: ledc
+    pin: GPIO47
+    id: lcd_backlight_output
+
+
+touchscreen:
+  - platform: gt911
+    i2c_id: bus_internal
+    address: 0x5D
+    id: touch
+    interrupt_pin:
+      number: GPIO3
+      ignore_strapping_warning: true
+
+display:
+  - platform: ili9xxx
+    id: s3_box_lcd
+    model: S3BOX
+    invert_colors: false
+    data_rate: 40MHz
+    cs_pin: 5
+    dc_pin: 4
+    reset_pin:
+      number: 48
+      inverted: true
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO0
+      mode: INPUT_PULLUP
+      inverted: true
+    id: left_top_button
+    internal: true
+    on_click:
+      then:
+        - script.execute: right_button_touch
+  - platform: gt911
+    id: home_button
+    index: 0
+    on_press:
+      then:
+        - script.execute: middle_button_touch

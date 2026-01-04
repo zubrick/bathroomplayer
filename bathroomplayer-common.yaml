@@ -2,26 +2,6 @@ esphome:
   name: ${devicename}
   friendly_name: ${upper_devicename}
 
-esp32:
-  board: esp32-s3-devkitc-1
-  flash_size: 16MB
-  framework:
-    type: esp-idf
-    ## Note: Disable these configurations if you face the boot loop issue.
-    sdkconfig_options:
-        CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
-        CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
-        CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB: "y"
-        # Moves instructions and read only data from flash into PSRAM on boot.
-        # Both enabled allows instructions to execute while a flash operation is in progress without needing to be placed in IRAM.
-        # Considerably speeds up mWW at the cost of using more PSRAM.
-        CONFIG_SPIRAM_RODATA: "y"
-        CONFIG_SPIRAM_FETCH_INSTRUCTIONS: "y"
-
-psram:
-  mode: quad
-  speed: 80MHz
-
 logger:
   level: DEBUG
 
@@ -48,77 +28,6 @@ api:
               id: connected_to_hass
               value: 'false'
           - lvgl.widget.hide: ${devicename}_hastatus
-
-external_components:
-  - source: github://m5stack/esphome-yaml/components
-    components: [aw9523b, axp2101 ]
-
-i2c:
-  - id: bus_internal
-    sda: GPIO12
-    scl: GPIO11
-
-spi:
-  - id: spi_bus
-    clk_pin: GPIO36
-    mosi_pin: GPIO37
-
-axp2101:
-  id: axp2101_pmu
-  i2c_id: bus_internal
-
-# IO Expander
-aw9523b:
-  - id: aw9523b_hub
-    i2c_id: bus_internal
-
-output:
-  - platform: axp2101
-    type: range
-    channel: DLDO1
-    id: lcd_backlight_output
-    min_voltage: 2600
-    max_voltage: 3300
-
-  - platform: axp2101
-    channel: ALDO1
-    voltage: 1800
-
-  - platform: axp2101
-    channel: ALDO2
-    voltage: 3300
-
-  - platform: axp2101
-    channel: BLDO1
-    voltage: 2800
-
-  - platform: axp2101
-    channel: BLDO2
-    voltage: 1500
-
-touchscreen:
-  - platform: ft63x6
-    id: touch
-    reset_pin:
-      aw9523b: aw9523b_hub
-      number: 0
-    calibration:
-      x_min: 0
-      x_max: 320
-      y_min: 0
-      y_max: 240
-
-display:
-  - platform: mipi_spi
-    model: M5CORE
-    dc_pin: GPIO35
-    reset_pin:
-      aw9523b: aw9523b_hub
-      number: 9
-    cs_pin: GPIO3
-    data_rate: 40MHz
-    invert_colors: true
-    id: m5cores3_lcd
 
 font:
   - file:
@@ -242,59 +151,57 @@ lvgl:
           hidden: true
           align: top_right
           x: -8
-          y: 4
+          y: 2
           text_align: right
-          text_color: 0x808080
+          text_color: 0xa0a0a0
       - label:
-          text: "\U000F0091" # start with mdi-battery-unknown
+          text: "" # start with mdi-battery-unknown
           id: battery_status
-          hidden: false
+          hidden: true
           align: top_left
-          x: 8
-          y: 4
+          x: 44
+          y: 2
           text_align: left
-          text_color: 0x808080
+          text_color: 0xa0a0a0
           text_font: battery_icons_20
-          widgets:
-            - label:
-                text: '??%'
-                id: battery_status_label
-                align_to:
-                  id: battery_status
-                  align: OUT_RIGHT_MID
-                  x: -2
-                text_color: 0x808080
-                text_font: roboto_small
-
+      - label:
+          text: ""
+          id: battery_status_label
+          align: top_left
+          hidden: true
+          x: 66
+          y: 4
+          text_color: 0xa0a0a0
+          text_font: roboto_small
       - label:
           text: "\U000F04B3"
           id: lbl_nosleepicon
           hidden: true
           align: top_left
-          x: 70
-          y: 4
+          x: 102
+          y: 2
           text_align: left
-          text_color: 0x808080
+          text_color: 0xa0a0a0
           text_font: battery_icons_20
       - label:
-          text: "" # start with mdi-battery-unknown
+          text: " "
           id: lbl_time
           hidden: false
           align: top_left
-          x: 100
+          x: 4
           y: 4
           text_align: right
-          text_color: 0x808080
+          text_color: 0xa0a0a0
           text_font: roboto_small
       - label:
-          text: "" # start with mdi-battery-unknown
+          text: " "
           id: lbl_mpname
           hidden: false
           align: top_right
           x: -30
           y: 4
           text_align: right
-          text_color: 0x808080
+          text_color: 0xa0a0a0
           text_font: roboto_small
       - obj:
           id: boot_screen
@@ -862,71 +769,6 @@ number:
                   brightness: !lambda 'return x / 100.0;'
 
 binary_sensor:
-  ## LEFT TOUCH - PREVIOUS PAGE
-  - platform: touchscreen
-    name: Left Touch Button
-    x_min: 10
-    x_max: 120
-    y_min: 240
-    y_max: 280
-    use_raw: true
-    on_press:
-      then:
-        - if:
-            condition:
-              - light.is_on: lcd_backlight
-            then:
-              - lvgl.page.previous:
-                  animation: MOVE_RIGHT
-                  time: 200ms
-        - script.execute: lvgl_restart_idle
-
-  ## MIDDLE TOUCH - BRIGHTNESS CONTROL
-  - platform: touchscreen
-    name: Middle Touch Button
-    on_press:
-      then:
-        - lambda: |-
-            float max_b = id(max_brightness).state / 100.0;
-            float step = (max_b - 0.25f) / 3.0f;
-            float levels[] = {0.25f, 0.25f + step, 0.25f + 2 * step, max_b};
-            float current = id(current_brightness);
-            int idx = 0;
-            // Find the closest level >= current, then step to next
-            for (int i = 0; i < 4; i++) {
-              if (current <= levels[i] + 0.01) { idx = i; break; }
-            }
-            idx = (idx + 1) % 4;
-            id(current_brightness) = levels[idx];
-        - light.turn_on:
-            id: lcd_backlight
-            brightness: !lambda 'return id(current_brightness);'
-        - script.execute: lvgl_restart_idle
-    x_min: 130
-    x_max: 200
-    y_min: 240
-    y_max: 280
-    use_raw: true
-
-  ## RIGHT TOUCH - NEXT PAGE
-  - platform: touchscreen
-    name: Right Touch Button
-    id: right_button
-    x_min: 230
-    x_max: 310
-    y_min: 240
-    y_max: 280
-    use_raw: true
-    on_press:
-      then:
-        - if:
-            condition:
-              - light.is_on: lcd_backlight
-            then:
-              - lvgl.page.next:
-                  animation: MOVE_LEFT
-                  time: 200ms
-        - script.execute: lvgl_restart_idle
   - platform: homeassistant
     id: mpmute
     entity_id: ${mediaplayer}
@@ -970,70 +812,6 @@ binary_sensor:
                   text: "\U000F049E"
 
 sensor:
-  - platform: axp2101
-    id: axp2101_sensor
-    battery_level:
-      name: "Battery Level"
-      id: battery_level_id
-      on_value:
-        - lvgl.label.update:
-            id: battery_status_label
-            text:
-              format: "%0.0f%%"
-              args: [id(battery_level_id).state]
-        - lvgl.label.update:
-            id: battery_status
-            text: !lambda |-
-              static char buf[10];
-              std::string icon;
-              if (id(battery_is_charging) ) {
-                  icon = "\U000F0084"; // mdi-battery-charging
-              } else if(x == 100.0) {
-                  icon = "\U000F0079"; // mdi-battery (full)
-              } else if (x > 90) {
-                  icon = "\U000F0082"; // mdi-battery-90
-              } else if (x > 80) {
-                  icon = "\U000F0081"; // mdi-battery-80
-              } else if (x > 70) {
-                  icon = "\U000F0080"; // mdi-battery-70
-              } else if (x > 60) {
-                  icon = "\U000F007F"; // mdi-battery-60
-              } else if (x > 50) {
-                  icon = "\U000F007E"; // mdi-battery-50
-              } else if (x > 40) {
-                  icon = "\U000F007D"; // mdi-battery-40
-              } else if (x > 30) {
-                  icon = "\U000F007C"; // mdi-battery-30
-              } else if (x > 20) {
-                  icon = "\U000F007B"; // mdi-battery-20
-              } else if (x > 10) {
-                  icon = "\U000F007A"; // mdi-battery-10
-              } else if (x > 0) {
-                  icon = "\U000F008E"; // mdi-battery-outline
-              } else {
-                  icon = "\U000F0091"; // mdi-battery-unknown
-              }
-              snprintf(buf, sizeof(buf), "%s", icon.c_str());
-              return buf;
-    battery_voltage:
-      name: "Battery Voltage"
-    axp_temperature:
-      name: "AXP2101 Temperature"
-    battery_charging:
-      name: "Battery Charging"
-      on_state:
-        then:
-          - lambda: |-
-              id(battery_is_charging) = x > 0.5;
-          - if:
-              condition:
-                and:
-                  - lvgl.is_paused:
-                  - lambda: 'return id(battery_is_charging);'
-              then:
-                - lvgl.resume:
-                - lvgl.widget.redraw:
-                - light.turn_on: lcd_backlight
   - platform: homeassistant
     id: mpvol
     entity_id: ${mediaplayer}
@@ -1145,3 +923,44 @@ script:
           id: lbl_time
           text: !lambda |-
              return id(homeassistant_time).now().strftime("%H:%M");
+  - id: middle_button_touch
+    mode: restart
+    then:
+      - lambda: |-
+          float max_b = id(max_brightness).state / 100.0;
+          float step = (max_b - 0.25f) / 3.0f;
+          float levels[] = {0.25f, 0.25f + step, 0.25f + 2 * step, max_b};
+          float current = id(current_brightness);
+          int idx = 0;
+          // Find the closest level >= current, then step to next
+          for (int i = 0; i < 4; i++) {
+            if (current <= levels[i] + 0.01) { idx = i; break; }
+          }
+          idx = (idx + 1) % 4;
+          id(current_brightness) = levels[idx];
+      - light.turn_on:
+          id: lcd_backlight
+          brightness: !lambda 'return id(current_brightness);'
+      - script.execute: lvgl_restart_idle
+  - id: left_button_touch
+    mode: restart
+    then:
+      - if:
+          condition:
+            - light.is_on: lcd_backlight
+          then:
+            - lvgl.page.previous:
+                animation: MOVE_RIGHT
+                time: 200ms
+      - script.execute: lvgl_restart_idle
+  - id: right_button_touch
+    mode: restart
+    then:
+      - if:
+          condition:
+            - light.is_on: lcd_backlight
+          then:
+            - lvgl.page.next:
+                animation: MOVE_left
+                time: 200ms
+      - script.execute: lvgl_restart_idle

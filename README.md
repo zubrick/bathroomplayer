@@ -42,9 +42,9 @@ api:
     key: !secret api_key
 
 packages:
-  zmatrix:
+  bathroomplayer:
     url: https://github.com/zubrick/bathroomplayer
     ref: main  # optional
-    files: [ bathroomplayer.yaml ]
+    files: [ bathroomplayer-common.yaml, bathroomplayer-cores3-base.yaml ]
     refresh: 10s  # optional
 ```
