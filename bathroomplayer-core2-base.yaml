@@ -1,0 +1,172 @@
+esphome:
+  platformio_options:
+    upload_speed: 460800
+
+esp32:
+  board: m5stack-core2
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+http_request:
+  verify_ssl: false
+
+psram:
+  mode: quad
+  speed: 80MHz
+
+i2c:
+  - id: bus_internal
+    sda: GPIO21
+    scl: GPIO22
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO38
+
+external_components:
+  - source: github://m5stack/esphome-yaml/components
+    components: [axp2101 ]
+
+axp2101:
+  id: axp2101_pmu
+  i2c_id: bus_internal
+
+output:
+  - platform: axp2101
+    type: range
+    channel: BLDO1
+    id: lcd_backlight_output
+    min_voltage: 2600
+    max_voltage: 3300
+
+touchscreen:
+  - platform: ft63x6
+    id: touch
+    interrupt_pin: GPIO39
+
+display:
+  - platform: mipi_spi
+    model: M5CORE
+    cs_pin: GPIO5
+    dc_pin: GPIO15
+    data_rate: 40MHz
+    invert_colors: true
+    pixel_mode: 18bit
+    dimensions:
+      width: 320
+      height: 240
+    transform: # must be explicitly set
+      swap_xy: false
+      mirror_x: false
+      mirror_y: false
+    show_test_card: true
+
+sensor:
+  - platform: axp2101
+    id: axp2101_sensor
+    battery_level:
+      name: "Battery Level"
+      id: battery_level_id
+      on_value:
+        then:
+          - lvgl.widget.show: battery_status
+          - lvgl.widget.show: battery_status_label
+          - lvgl.label.update:
+              id: battery_status_label
+              text:
+                format: "%0.0f%%"
+                args: [ 'x' ]
+          - logger.log:
+              format: "battery level is %0.0f%%"
+              args: [ 'x' ]
+          - lvgl.label.update:
+              id: battery_status
+              text: !lambda |-
+                static char buf[10];
+                std::string icon;
+                if (id(battery_is_charging) ) {
+                  icon = "\U000F0084"; // mdi-battery-charging
+                } else if(x == 100.0) {
+                  icon = "\U000F0079"; // mdi-battery (full)
+                } else if (x > 90) {
+                  icon = "\U000F0082"; // mdi-battery-90
+                } else if (x > 80) {
+                  icon = "\U000F0081"; // mdi-battery-80
+                } else if (x > 70) {
+                  icon = "\U000F0080"; // mdi-battery-70
+                } else if (x > 60) {
+                  icon = "\U000F007F"; // mdi-battery-60
+                } else if (x > 50) {
+                  icon = "\U000F007E"; // mdi-battery-50
+                } else if (x > 40) {
+                  icon = "\U000F007D"; // mdi-battery-40
+                } else if (x > 30) {
+                  icon = "\U000F007C"; // mdi-battery-30
+                } else if (x > 20) {
+                  icon = "\U000F007B"; // mdi-battery-20
+                } else if (x > 10) {
+                  icon = "\U000F007A"; // mdi-battery-10
+                } else if (x > 0) {
+                  icon = "\U000F008E"; // mdi-battery-outline
+                } else {
+                  icon = "\U000F0091"; // mdi-battery-unknown
+                }
+                snprintf(buf, sizeof(buf), "%s", icon.c_str());
+                return buf;
+    battery_voltage:
+      name: "Battery Voltage"
+    battery_charging:
+      name: "Battery Charging"
+      on_state:
+        then:
+          - lambda: |-
+              id(battery_is_charging) = x > 0.5;
+          - if:
+              condition:
+                and:
+                  - lvgl.is_paused:
+                  - lambda: 'return id(battery_is_charging);'
+              then:
+                - lvgl.resume:
+                - lvgl.widget.redraw:
+                - light.turn_on: lcd_backlight
+
+binary_sensor:
+  ## LEFT TOUCH - PREVIOUS PAGE
+  - platform: touchscreen
+    name: Left Touch Button
+    x_min: 10
+    x_max: 120
+    y_min: 240
+    y_max: 280
+    use_raw: true
+    on_press:
+      then:
+        - script.execute: left_button_touch
+
+  ## MIDDLE TOUCH - BRIGHTNESS CONTROL
+  - platform: touchscreen
+    name: Middle Touch Button
+    on_press:
+      then:
+        - script.execute: middle_button_touch
+    x_min: 130
+    x_max: 200
+    y_min: 240
+    y_max: 280
+    use_raw: true
+
+  ## RIGHT TOUCH - NEXT PAGE
+  - platform: touchscreen
+    name: Right Touch Button
+    id: right_button
+    x_min: 230
+    x_max: 310
+    y_min: 240
+    y_max: 280
+    use_raw: true
+    on_press:
+      then:
+        - script.execute: right_button_touch

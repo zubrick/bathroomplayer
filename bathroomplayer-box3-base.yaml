@@ -15,6 +15,7 @@ esphome:
     then:
       - lvgl.widget.hide: battery_status
       - lvgl.widget.hide: battery_status_label
+      - lambda: id(no_battery) = true;
 
 psram:
   mode: octal

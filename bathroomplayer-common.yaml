@@ -149,12 +149,16 @@ lvgl:
                     - light.turn_off: lcd_backlight
     - timeout: 30min
       then:
-        - logger.log: "Sleep timeout triggered..."
-        - logger.log: "Entering deep sleep..."
-        - delay: 1s
-        - wifi.disable:
-        - light.turn_off: lcd_backlight
-        - lvgl.pause:
+        - if:
+            condition:
+              - lambda: 'return id(no_battery) == false;'
+            then:
+              - logger.log: "Sleep timeout triggered..."
+              - logger.log: "Entering deep sleep..."
+              - delay: 1s
+              - wifi.disable:
+              - light.turn_off: lcd_backlight
+              - lvgl.pause:
   top_layer:
     widgets:
       - label:
@@ -171,7 +175,7 @@ lvgl:
           id: battery_status
           hidden: true
           align: top_left
-          x: 44
+          x: 46
           y: 2
           text_align: left
           text_color: 0xa0a0a0
@@ -190,7 +194,7 @@ lvgl:
           id: lbl_nosleepicon
           hidden: true
           align: top_left
-          x: 102
+          x: 112
           y: 2
           text_align: left
           text_color: 0xa0a0a0
@@ -772,6 +776,10 @@ globals:
     restore_value: no
     initial_value: '0.50'
   - id: avoid_sleep
+    type: bool
+    restore_value: no
+    initial_value: 'false'
+  - id: no_battery
     type: bool
     restore_value: no
     initial_value: 'false'

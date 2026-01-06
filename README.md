@@ -8,14 +8,11 @@ also be somewhere else than in you bathroom.
 
 Inspired and with some code borrowed from the Bento device from SmartyVan: https://gist.github.com/SmartyVan/9583deff2d1281fb714d711ee8e83a78
 
-To be a bit future-proof I went with the S3 version, but it should
-work similiarly with the core2
+To be a bit future-proof I went with the S3 version, but there is also
+a version for the core2 v1.1 and the Espressif ESP32-S3-Box3
 
 I used the M5Stack Core S3 SE coupled with a battery backpack and the
 charger base.
-
-I also made a version compatible with the Espressif ESP32-S3-Box3 for
-a desktop use.
 
 ## Configuration
 
@@ -53,4 +50,5 @@ packages:
 ```
 
 replace `bathroomplayer-cores3-base.yaml` with
-`bathroomplayer-box3-base.yaml` to use the Espressif ESP32-S3-Box3 instead
+ * `bathroomplayer-core2-base.yaml` to use the M5Stack Core2 v1.1 instead
+ * `bathroomplayer-box3-base.yaml` to use the Espressif ESP32-S3-Box3 instead
