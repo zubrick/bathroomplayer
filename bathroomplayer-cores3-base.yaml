@@ -171,6 +171,7 @@ binary_sensor:
     y_min: 240
     y_max: 280
     use_raw: true
+    internal: true
     on_press:
       then:
         - script.execute: left_button_touch
@@ -178,14 +179,15 @@ binary_sensor:
   ## MIDDLE TOUCH - BRIGHTNESS CONTROL
   - platform: touchscreen
     name: Middle Touch Button
-    on_press:
-      then:
-        - script.execute: middle_button_touch
     x_min: 130
     x_max: 200
     y_min: 240
     y_max: 280
     use_raw: true
+    internal: true
+    on_press:
+      then:
+        - script.execute: middle_button_touch
 
   ## RIGHT TOUCH - NEXT PAGE
   - platform: touchscreen
@@ -196,6 +198,7 @@ binary_sensor:
     y_min: 240
     y_max: 280
     use_raw: true
+    internal: true
     on_press:
       then:
         - script.execute: right_button_touch

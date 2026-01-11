@@ -72,6 +72,7 @@ binary_sensor:
   - platform: gt911
     id: home_button
     index: 0
+    internal: true
     on_press:
       then:
         - script.execute: middle_button_touch
